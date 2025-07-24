@@ -1,0 +1,33 @@
+#cloud-config
+packages:
+  - libreswan
+
+write_files:
+  - path: /etc/ipsec.d/azure.conf
+    content: |
+      conn azure
+            auto=start
+            keyexchange=ikev2
+            ike=aes_gcm256-sha384;dh20
+            esp=aes_gcm256
+            salifetime=${sa_lifetime}
+            authby=secret
+            type=tunnel
+            left=${stackit_gateway_ipv4}
+            leftsubnet=${stackit_address_space}
+            right=${azure_gateway_ipv4}
+            rightsubnet=${azure_address_space}
+  - path: /etc/ipsec.d/azure.secrets
+    content: |
+      ${stackit_gateway_ipv4} ${azure_gateway_ipv4} : PSK "${shared_key}"
+    permissions: '0600'
+  - path: /etc/sysctl.conf
+    content: |
+      net.ipv4.ip_forward=1
+    append: true
+
+runcmd:
+  - |
+    sysctl -p
+    rc-update add ipsec
+    rc-service ipsec start
