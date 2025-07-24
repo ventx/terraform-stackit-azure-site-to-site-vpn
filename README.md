@@ -1,3 +1,5 @@
+<a name="ventx_logo" href="https://ventx.de">![ventx logo](logo.svg)</a>
+
 # STACKIT Azure Site-to-Site VPN
 
 This project creates a site-to-site VPN between STACKIT and Azure. The STACKIT side uses a small VM running LibreSwan, while the Azure side utilizes an Azure VNet Gateway with the `VpnGw1` SKU (the `Basic` SKU just supports the deprecated Diffie-Hellman group 2).
