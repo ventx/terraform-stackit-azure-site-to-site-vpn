@@ -135,3 +135,100 @@ resource "stackit_server" "vpn_gateway" {
     }
   )
 }
+
+# Test resources
+
+resource "stackit_resourcemanager_project" "test" {
+  parent_container_id = stackit_network_area.main.organization_id
+  name                = "pro-test-site-to-site-vpn"
+  labels = {
+    "networkArea" = stackit_network_area.main.network_area_id
+  }
+  owner_email = var.owner_email
+}
+
+resource "stackit_network" "test" {
+  project_id       = stackit_resourcemanager_project.test.project_id
+  name             = "nw-stackit-azure-site-to-site-vpn"
+  ipv4_nameservers = ["9.9.9.9"]
+  ipv4_prefix      = "10.1.0.0/24"
+  routed           = true
+}
+
+resource "stackit_security_group" "test" {
+  project_id = stackit_resourcemanager_project.test.project_id
+  name       = "sg-test-stackit-azure-site-to-site-vpn"
+  stateful   = true
+}
+
+resource "stackit_security_group_rule" "test" {
+  project_id        = stackit_resourcemanager_project.test.project_id
+  security_group_id = stackit_security_group.test.security_group_id
+  direction         = "ingress"
+  description = "Allow SSH"
+  protocol = {
+    name = "tcp"
+  }
+  port_range = {
+    max = 22
+    min = 22
+  }
+}
+
+resource "stackit_network_interface" "test" {
+  project_id         = stackit_resourcemanager_project.test.project_id
+  network_id         = stackit_network.test.network_id
+  security_group_ids = [stackit_security_group.test.security_group_id]
+  ipv4               = "10.1.0.3"
+}
+
+resource "stackit_server" "test" {
+  project_id = stackit_resourcemanager_project.test.project_id
+  boot_volume = {
+    size                  = 1
+    source_type           = "image"
+    source_id             = stackit_image.alpine_test.image_id
+    performance_class     = "storage_premium_perf0"
+    delete_on_termination = true
+  }
+  name               = "ser-test"
+  machine_type       = "t1.2"
+  keypair_name       = stackit_key_pair.vpn_gateway.name
+  network_interfaces = [stackit_network_interface.test.network_interface_id]
+}
+
+resource "stackit_public_ip" "test" {
+  project_id           = stackit_resourcemanager_project.test.project_id
+  network_interface_id = stackit_network_interface.test.network_interface_id
+}
+
+resource "terraform_data" "alpine_image_test" {
+  triggers_replace = local.alpine_image_url
+
+  # Download Alpine image, overwriting placeholder file.
+  provisioner "local-exec" {
+    when    = create
+    command = "curl --clobber -o alpine.qcow2 ${local.alpine_image_url}"
+  }
+}
+
+resource "stackit_image" "alpine_test" {
+  project_id  = stackit_resourcemanager_project.test.project_id
+  name        = "img-alpine-${local.alpine_version}"
+  disk_format = "qcow2"
+  # local_file_path expects a file to be present at all times, therefore we use an
+  # empty placeholder file to still be able to download the image on the fly.
+  local_file_path = "alpine.qcow2"
+  min_disk_size   = 1
+  min_ram         = 128
+
+  # Truncate Alpine image to 0 bytes, making it a placeholder file again.
+  provisioner "local-exec" {
+    when    = create
+    command = "truncate -s0 ${self.local_file_path}"
+  }
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.alpine_image_test]
+  }
+}
