@@ -118,7 +118,7 @@ No outputs.
 
 If you need help with the usage of this project, feel free to create an issue. For help with STACKIT in general, contact us at stackit@ventx.de and we'll see how we can assist you on your journey with STACKIT 😊
 
-Need help with anything else? Come visit us at [ventx.de](https://ventx.de) to get an overview of what the have to offer!
+Need help with anything else? Come visit us at [ventx.de](https://ventx.de) to get an overview of what we have to offer!
 
 ## Roadmap
 
