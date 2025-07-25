@@ -10,7 +10,7 @@ locals {
 
 resource "stackit_network_area" "main" {
   organization_id = var.stackit_organization_id
-  name            = "network-area-main"
+  name            = "nwa-main"
   network_ranges = [
     {
       prefix = "10.1.0.0/16"
@@ -34,7 +34,7 @@ resource "stackit_network_area_route" "site_to_site_vpn" {
 
 resource "stackit_resourcemanager_project" "site_to_site_vpn" {
   parent_container_id = stackit_network_area.main.organization_id
-  name                = "project-stackit-azure-site-to-site-vpn"
+  name                = "pro-stackit-azure-site-to-site-vpn"
   labels = {
     "networkArea" = stackit_network_area.main.network_area_id
   }
@@ -43,7 +43,7 @@ resource "stackit_resourcemanager_project" "site_to_site_vpn" {
 
 resource "stackit_network" "site_to_site_vpn" {
   project_id       = stackit_resourcemanager_project.site_to_site_vpn.project_id
-  name             = "network-stackit-azure-site-to-site-vpn"
+  name             = "nw-stackit-azure-site-to-site-vpn"
   ipv4_nameservers = ["9.9.9.9"]
   ipv4_prefix      = "10.1.255.0/24"
   routed           = true
@@ -51,7 +51,7 @@ resource "stackit_network" "site_to_site_vpn" {
 
 resource "stackit_security_group" "site_to_site_vpn" {
   project_id = stackit_resourcemanager_project.site_to_site_vpn.project_id
-  name       = "security-group-stackit-azure-site-to-site-vpn"
+  name       = "sg-stackit-azure-site-to-site-vpn"
   stateful   = true
 }
 
@@ -74,7 +74,7 @@ resource "terraform_data" "alpine_image" {
 
 resource "stackit_image" "alpine" {
   project_id  = stackit_resourcemanager_project.site_to_site_vpn.project_id
-  name        = "alpine-${local.alpine_version}"
+  name        = "img-alpine-${local.alpine_version}"
   disk_format = "qcow2"
   # local_file_path expects a file to be present at all times, therefore we use an
   # empty placeholder file to still be able to download the image on the fly.
@@ -106,7 +106,7 @@ resource "stackit_public_ip" "vpn_gateway" {
 }
 
 resource "stackit_key_pair" "vpn_gateway" {
-  name       = "ssh-key-vpn-gateway"
+  name       = "key-vpn-gateway"
   public_key = chomp(file(var.public_key_path))
 }
 
@@ -119,7 +119,7 @@ resource "stackit_server" "vpn_gateway" {
     performance_class     = "storage_premium_perf0"
     delete_on_termination = true
   }
-  name               = "vpn-gateway-stackit-azure"
+  name               = "ser-vpn-gateway-stackit-azure"
   machine_type       = "t1.2"
   keypair_name       = stackit_key_pair.vpn_gateway.name
   network_interfaces = [stackit_network_interface.vpn_gateway.network_interface_id]
