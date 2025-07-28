@@ -21,7 +21,7 @@ resource "stackit_network_area" "main" {
   transfer_network      = "10.255.255.0/24"
   default_nameservers   = ["9.9.9.9"]
   default_prefix_length = 24
-  min_prefix_length     = 23
+  min_prefix_length     = 22
   max_prefix_length     = 26
 }
 
