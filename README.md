@@ -1,8 +1,8 @@
 <a name="ventx_logo" href="https://ventx.de">![ventx logo](logo.svg)</a>
 
-# STACKIT Azure Site-to-Site VPN
+# STACKIT Azure Site-to-Site VPN + SKE Cluster
 
-This project creates a site-to-site VPN between STACKIT and Azure. The STACKIT side uses a small VM running LibreSwan, while the Azure side utilizes an Azure VNet Gateway with the `VpnGw1` SKU (the `Basic` SKU just supports the deprecated Diffie-Hellman group 2).
+This project creates a site-to-site VPN between STACKIT and Azure as well as an SKE cluster. The STACKIT side uses a small VM running LibreSwan, while the Azure side utilizes an Azure VNet Gateway with the `VpnGw1` SKU (the `Basic` SKU just supports the deprecated Diffie-Hellman group 2).
 
 ## Prerequisites
 
@@ -55,15 +55,19 @@ No modules.
 | [random_password.shared_key](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/password) | resource |
 | [stackit_image.alpine](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/image) | resource |
 | [stackit_key_pair.vpn_gateway](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/key_pair) | resource |
+| [stackit_network.kubernetes](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/network) | resource |
 | [stackit_network.site_to_site_vpn](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/network) | resource |
 | [stackit_network_area.main](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/network_area) | resource |
 | [stackit_network_area_route.site_to_site_vpn](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/network_area_route) | resource |
 | [stackit_network_interface.vpn_gateway](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/network_interface) | resource |
 | [stackit_public_ip.vpn_gateway](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/public_ip) | resource |
+| [stackit_resourcemanager_project.kubernetes](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/resourcemanager_project) | resource |
 | [stackit_resourcemanager_project.site_to_site_vpn](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/resourcemanager_project) | resource |
 | [stackit_security_group.site_to_site_vpn](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/security_group) | resource |
 | [stackit_security_group_rule.allow_internal_traffic_to_vpn_gateway_network](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/security_group_rule) | resource |
 | [stackit_server.vpn_gateway](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/server) | resource |
+| [stackit_ske_cluster.main](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/ske_cluster) | resource |
+| [stackit_ske_kubeconfig.main](https://registry.terraform.io/providers/stackitcloud/stackit/latest/docs/resources/ske_kubeconfig) | resource |
 | [terraform_data.alpine_image](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
 
 ## Inputs
@@ -78,18 +82,44 @@ No modules.
 
 ## Outputs
 
-No outputs.
+| Name | Description |
+|------|-------------|
+| <a name="output_kubeconfig"></a> [kubeconfig](#output\_kubeconfig) | The kubeconfig of the SKE cluster. |
 <!-- END_TF_DOCS -->
 
 ## Usage
 
 1. Make sure the prerequisites are met.
 2. Assign values to the variables (e. g. through a `.tfvars` file or environment variables).
-3. Adjust the IP ranges of the `stackit_network_area.main` and `stackit_network.site_to_site_vpn` resources to match your needs.
+3. Adjust the IP ranges of the `stackit_network_area.main`, `stackit_network.site_to_site_vpn` and `stackit_network.kubernetes` resources to match your needs.
 4. Adjust the IP ranges of the `azurerm_virtual_network.main` and `azurerm_subnet.gateway` resources to match your needs.
 5. Run `terraform plan` / `tofu plan` and check if the plan matches your expectations.
 6. Run `terraform apply` / `tofu apply` to deploy the infrastructure.
+7. Display the `kubeconfig` by running `terraform output -json | jq -r '.kubeconfig.value'`.
 
+You can make Kubernetes services available to your internal network through an internal load balancer:
+
+    apiVersion: v1
+    kind: Service
+    metadata:
+    annotations:
+        lb.stackit.cloud/internal-lb: "true"
+    name: my-internal-service
+    spec:
+    selector:
+        app: MyApp
+    ports:
+        - protocol: TCP
+        port: 80
+        targetPort: 8080
+    type: LoadBalancer
+
+Example:
+
+    test-server:~$ kubectl get svc
+    NAME                  TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+    kubernetes            ClusterIP      100.82.0.1       <none>        443/TCP        6h6m
+    my-internal-service   LoadBalancer   100.82.204.228   10.1.1.10     80:30839/TCP   87s
 
 ## Benchmark
 

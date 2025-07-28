@@ -135,3 +135,53 @@ resource "stackit_server" "vpn_gateway" {
     }
   )
 }
+
+# Kubernetes resources
+
+resource "stackit_resourcemanager_project" "kubernetes" {
+  parent_container_id = stackit_network_area.main.organization_id
+  name                = "pro-kubernetes"
+  labels = {
+    "networkArea" = stackit_network_area.main.network_area_id
+  }
+  owner_email = var.owner_email
+}
+
+resource "stackit_network" "kubernetes" {
+  project_id       = stackit_resourcemanager_project.kubernetes.project_id
+  name             = "nw-kubernetes"
+  ipv4_nameservers = ["9.9.9.9"]
+  ipv4_prefix      = "10.1.0.0/22"
+  routed           = true
+}
+
+resource "stackit_ske_cluster" "main" {
+  project_id = stackit_resourcemanager_project.kubernetes.project_id
+  name       = "ske-main"
+  node_pools = [
+    {
+      name               = "np-main"
+      machine_type       = "c1.2"
+      volume_type        = "storage_premium_perf0"
+      minimum            = "2"
+      maximum            = "3"
+      availability_zones = ["eu01-3"]
+    }
+  ]
+  maintenance = {
+    enable_kubernetes_version_updates    = true
+    enable_machine_image_version_updates = true
+    start                                = "03:00:00+02:00"
+    end                                  = "04:00:00+02:00"
+  }
+  network = {
+    id = stackit_network.kubernetes.network_id
+  }
+}
+
+resource "stackit_ske_kubeconfig" "main" {
+  project_id   = stackit_resourcemanager_project.kubernetes.project_id
+  cluster_name = stackit_ske_cluster.main.name
+  expiration   = 15552000
+  refresh      = true
+}
