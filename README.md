@@ -8,7 +8,7 @@ This project creates a site-to-site VPN between STACKIT and Azure. The STACKIT s
 
 A STACKIT service account with owner permissions at the organization level is needed. If you don't have one already, follow these steps:
 
-1. In the resource manager, create a dummy project within your STACKIT organization where the service account lives (e. g. `dummy-project`).
+1. In the resource manager, create a dummy project within your STACKIT organization where the service account lives (e. g. `pro-dummy`).
 2. In the resource manager, switch to the newly created project and create a service account.
 3. Create a service account key for the service account and save it.
 4. In the resource manager, switch to your STACKIT organization and assign the owner role to the service account.
